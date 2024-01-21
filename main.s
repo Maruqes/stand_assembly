@@ -137,6 +137,10 @@ read_car_from_user: ; rsi = car_index
 
 ;see all cars
 see_all_cars:
+    mov r8, [number_of_cars]
+    cmp r8, 0
+    je end_see_all_cars
+    
     mov r8, 0 ; print cars from cars array
 print_loop:
     mov rsi,r8
@@ -145,6 +149,7 @@ print_loop:
     inc r8
     cmp r8, [number_of_cars]
     jne print_loop
+end_see_all_cars:
     ret
 
 print_menu:
@@ -194,6 +199,64 @@ compare_loop:
     mov rax, -1
     ret
 
+
+delete_car: ; rsi = car_index
+    pushaq
+    mov r8, [number_of_cars]
+    dec r8
+    cmp rsi, r8
+    je delete_last_car
+
+    mov r8, [number_of_cars]
+    sub r8, rsi
+    dec r8
+
+
+    mov r12, 0
+delete_car_loop2:
+    mov rax, 30
+    mul rsi
+
+    mov r9, 0
+    mov r10, 29
+    mov r11, 0
+    delete_car_loop:
+
+    mov r11b, [cars + rax + r9 + 30]
+    mov [cars + rax + r9], r11b
+
+    inc r9
+    cmp r9, r10
+    jne delete_car_loop
+
+    inc rsi
+    inc r12
+    cmp r12, r8
+    jne delete_car_loop2
+
+
+    ;delete last car
+delete_last_car:
+    mov r8, [number_of_cars]
+    dec r8
+
+    mov rax, 30
+    mul r8
+
+    mov r9,0
+    mov r10, 29
+    delete_last_car_loop:
+    mov byte[cars + rax + r9], 0
+    inc r9
+    cmp r9, r10
+    jne delete_last_car_loop
+
+    mov r8, [number_of_cars]
+    dec r8
+    mov [number_of_cars], r8
+
+    popaq
+    ret
     
 
 buy_car:
@@ -234,6 +297,7 @@ search_all_cars:
     jmp search_all_cars
 
 car_found:
+    call delete_car
     mov rax, 1
     mov rdi, 1
     mov rsi, buy_car_msg2
