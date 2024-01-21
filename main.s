@@ -163,6 +163,94 @@ get_menu_option:
     syscall
     ret
 
+; compare string with car
+compare_string_and_car: ; rsi = car_index
+    pushaq
+    
+    mov rax, 30
+    mul rsi
+
+    mov r8, cars
+    add r8, rax; r8 addr de car no array nº rsi
+
+    mov r9, 0 ; loop pelas 30 chars do car
+compare_loop:
+    mov r10b, [buy_car_option + r9] ; r10b = char da string dada
+    mov r11b, [r8 + r9] ; r11b = char do car rs1
+    cmp r10b, r11b
+    jne not_equal
+
+    inc r9
+    cmp r9, 29
+    jne compare_loop
+
+    equal:
+    popaq
+    mov rax, 0
+    ret
+
+    not_equal:
+    popaq
+    mov rax, -1
+    ret
+
+    
+
+buy_car:
+
+    ;clear buy_car_msg
+    mov r8,0
+    mov r9, buy_car_option
+    mov r10, 29
+    clear_buy_car_msg:
+    mov byte[r9 + r8], 0
+    inc r8
+    cmp r8, r10
+    jne clear_buy_car_msg
+
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, buy_car_msg
+    mov rdx, buy_car_msg_len
+    syscall
+
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, buy_car_option
+    mov rdx, 30
+    syscall
+
+    mov rsi, 0
+search_all_cars:
+    call compare_string_and_car
+
+    cmp rax, 0
+    je car_found
+
+    cmp rsi, [number_of_cars]
+    je car_not_found
+
+    inc rsi
+    jmp search_all_cars
+
+car_found:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, buy_car_msg2
+    mov rdx, buy_car_msg_len2
+    syscall
+    ret
+
+car_not_found:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, buy_car_not_found
+    mov rdx, buy_car_not_found_len
+    syscall
+    ret
+
+
+
 _start:
     mov rax, test_car  ; insert test_car in cars array
     mov rdi, test_car_len
@@ -197,6 +285,9 @@ menu_loop:
     je see_all_cars_option
 
     cmp al, 51    ; 48 + 3
+    je buy_caroption
+
+    cmp al, 52    ; 48 + 4
     je quit_app
     
     jmp menu_loop
@@ -211,6 +302,11 @@ insert_car_option:
 see_all_cars_option:
     read_0xA
     call see_all_cars
+    jmp menu_loop
+
+buy_caroption:
+    read_0xA
+    call buy_car
     jmp menu_loop
 
 quit_app:
@@ -243,10 +339,19 @@ print_car_message_len: equ $ - print_car_message
 
 menu: db 0xA,"1 - Insert car", 0xA
       db "2 - See all cars", 0xA
-      db "3 - Exit", 0xA
+      db "3 - Buy car", 0xA
+      db "4 - Exit", 0xA
       db "Option: ", 0x00
 menu_len: equ $ - menu
 
 menu_option: db 0x00, 0x00
 
 random: db 0x00
+
+buy_car_msg: db "Name of the car: ", 0xA
+buy_car_msg_len: equ $ - buy_car_msg
+buy_car_msg2: db "Car bought!", 0xA
+buy_car_msg_len2: equ $ - buy_car_msg2
+buy_car_option: TIMES 30 db 0
+buy_car_not_found: db "Car not found!", 0xA
+buy_car_not_found_len: equ $ - buy_car_not_found
